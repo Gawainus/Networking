@@ -1,0 +1,18 @@
+#CS438 MP1 Makefile
+#by Yumen Tsao
+
+CC = gcc
+INC = -I. -Ilibs
+FLAGS = -O0 -Wall -Wextra -Werror -Wno-unused -Wno-sign-compare -g -std=gnu99
+DFLAG=
+
+all: http_server http_client
+
+http_server: server.c
+	$(CC) $(FLAGS) $(INC) $^ -o $@
+
+http_client: client.c
+	$(CC) $(FLAGS) $(INC) $^ -o $@
+
+clean:
+	$(RM) -r *.o http_server http_client
