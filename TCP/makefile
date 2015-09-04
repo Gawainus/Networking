@@ -6,13 +6,14 @@ INC = -I. -Ilibs
 FLAGS = -O0 -Wall -Wextra -Werror -Wno-unused -Wno-sign-compare -g -std=gnu99 -pthread
 DFLAG=
 
-all: reliable_sender reliable_receiver
+all: tcp_sender tcp_receiver
 
-reliable_sender: sender_main.c
+tcp_sender: sender_main.c
 	$(CC) $(FLAGS) $(INC) $^ -o $@
 
-reliable_receiver: receiver_main.c
+tcp_receiver: receiver_main.c
 	$(CC) $(FLAGS) $(INC) $^ -o $@
 
 clean:
-	$(RM) -r *.o reliable_sender reliable_receiver
+	$(RM) -r *.o tcp_sender tcp_receiver
+

@@ -25,7 +25,6 @@ int sockfd;
 int writer_done = 0;
 int pkt_size;
 
-
 unsigned long long int sum;
 unsigned long long int seq;
 unsigned long long int ack;
@@ -50,32 +49,32 @@ pkt_t ** recv_buffer;
 struct sockaddr_storage their_addr;
 socklen_t addr_len;
 
-void receiver();
+void catcher();
 void writer(FILE * fwp);
-void reliablyReceive(char * port, char* destinationFile);
+void receiver(char * port, char* destinationFile);
 void update_inorder_front(int i);
 void *get_in_addr(struct sockaddr *sa);
 
 int main(int argc, char** argv)
 {
 	unsigned short int udpPort;
-	
+
 	if(argc != 3)
 	{
 		fprintf(stderr, "usage: %s UDP_port filename_to_write\n\n", argv[0]);
 		exit(1);
 	}
-	
-	reliablyReceive( argv[1], argv[2] );
+
+	receiver( argv[1], argv[2] );
 }
 
-void reliablyReceive( char * port, char* destinationFile)
+void receiver(char * port, char* destinationFile)
 {
     struct addrinfo hints, *servinfo, *p;
     int rv;
     int numbytes;
     int error;
-    
+
     char s[INET6_ADDRSTRLEN];
 
     memset(&hints, '\0', sizeof hints);
@@ -152,7 +151,6 @@ void reliablyReceive( char * port, char* destinationFile)
         written_bool = calloc(num_pkts, sizeof(int));
         recv_buffer = calloc(num_pkts, sizeof(pkt_t*));
 
-
         pthread_t *tid;
         if( ( tid = calloc( 2, sizeof( pthread_t ) ) ) == NULL )
         {
@@ -161,7 +159,7 @@ void reliablyReceive( char * port, char* destinationFile)
 
         pthread_mutex_init( &mutex, NULL );
         //creating threads to work
-        if( (error = pthread_create( tid, NULL, (void *)receiver, NULL) ) )
+        if( (error = pthread_create( tid, NULL, (void *)catcher, NULL) ) )
         {
             fprintf(stderr, "Failed to create thread: %s\n", strerror(error) );
         }
@@ -169,7 +167,6 @@ void reliablyReceive( char * port, char* destinationFile)
         {
             fprintf(stderr, "Failed to create thread: %s\n", strerror(error) );
         }
-
         puts("threads created!");
 
         int i;
@@ -180,7 +177,7 @@ void reliablyReceive( char * port, char* destinationFile)
             if( ( error = pthread_join( tid[i], NULL ) ) )
                 fprintf(stderr, "Failed to join thread %d: %s\n", i,strerror(error) );
         }
-        
+
         pthread_mutex_destroy( &mutex );
         puts("");
         //printf("total revc:%llu\n", ack);
@@ -195,7 +192,7 @@ void reliablyReceive( char * port, char* destinationFile)
                 perror("talker: sendto");
                 return;
             }
-            
+
             numbytes = recvfrom(sockfd, buf, PKTLEN, 0, (struct sockaddr *)&their_addr, &addr_len);
             memcpy( &seq, buf, LL);
 
@@ -204,7 +201,7 @@ void reliablyReceive( char * port, char* destinationFile)
         }
 
         while(1)
-        {   
+        {
             if(seq == ack)
             {
                 fwrite(buf+HEADLEN, 1, pkt_size, fwp);
@@ -235,7 +232,7 @@ void reliablyReceive( char * port, char* destinationFile)
     return;
 }
 
-void receiver()
+void catcher()
 {
     int i;
     int numbytes;
@@ -251,11 +248,11 @@ void receiver()
             perror("talker: sendto");
             return;
         }
-        
+
         numbytes = recvfrom(sockfd, buf, PKTLEN, 0, (struct sockaddr *)&their_addr, &addr_len);
         memcpy( &seq, buf, LL);
         memcpy( &pkt_size, buf+LL, sizeof(int));
-        
+
         if(seq == 0)
             break;
     }
@@ -290,7 +287,7 @@ void receiver()
             recv_buffer[i]->tgt = i;
             memcpy( &(recv_buffer[i]->size), buf+LL, sizeof(int));
             memcpy( recv_buffer[i]->content, buf+HEADLEN, BUFLEN);
-            
+
             pthread_mutex_lock(&mutex);
             update_inorder_front(i);
             pthread_mutex_unlock(&mutex);
@@ -306,7 +303,7 @@ void receiver()
             perror("talker: sendto");
             return;
         }
-        
+
         do
         {
             numbytes = recvfrom(sockfd, buf, PKTLEN, 0, (struct sockaddr *)&their_addr, &addr_len);
@@ -316,7 +313,7 @@ void receiver()
                 break;
             }
         }while(numbytes <= 0);
-        
+
         memcpy( &seq, buf, LL);
         memcpy( &pkt_size, buf+LL, sizeof(int));
     }
@@ -349,7 +346,7 @@ void writer( FILE * fwp )
                     sendto(sockfd, buf, 5, 0, (struct sockaddr *)&their_addr, addr_len);
                 }
                 puts("Writer is done!!");
-                return;   
+                return;
             }
         }
         written_front = inorder_front;
